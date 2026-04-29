@@ -25,6 +25,8 @@ function App() {
     clearAll,
   } = useInventoryStore()
   const [isExportingWord, setIsExportingWord] = useState(false)
+  const [isExportingExcel, setIsExportingExcel] = useState(false)
+  const [excelTemplateFile, setExcelTemplateFile] = useState<File | null>(null)
   const [speechCaptured, setSpeechCaptured] = useState('')
   const { transcript, isListening, isSupported, startListening, stopListening, resetTranscript } =
     useSpeechToText({ language: 'es-ES' })
@@ -76,14 +78,19 @@ function App() {
     notifySuccess(`${parsed.rows.length} fila(s) agregadas al inventario.`)
   }
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     if (rows.length === 0) {
       notifyWarning('Agregue al menos una fila para exportar a Excel.')
       return
     }
 
-    exportToExcel(tableData, safeDocumentDate)
-    notifySuccess('Archivo Excel generado correctamente.')
+    setIsExportingExcel(true)
+    try {
+      await exportToExcel(tableData, safeDocumentDate, excelTemplateFile)
+      notifySuccess('Archivo Excel generado correctamente.')
+    } finally {
+      setIsExportingExcel(false)
+    }
   }
 
   const handleExportWord = async () => {
@@ -177,8 +184,31 @@ function App() {
       </Panel>
 
       <Panel title="5) Exportacion de documentos" description="Genere reportes compatibles con Excel y Word.">
+        <label className="mb-4 flex flex-col gap-3 text-[20px] font-semibold text-slate-100">
+          Plantilla de Excel (opcional)
+          <input
+            type="file"
+            accept=".xlsx,.xlsm,.xls"
+            className="focus-ring h-[60px] rounded-xl border-2 border-slate-500 bg-slate-900 px-4 text-[20px] text-white file:mr-4 file:rounded-lg file:border-0 file:bg-slate-700 file:px-4 file:py-2 file:text-[18px] file:font-semibold file:text-white"
+            onChange={(event) => {
+              const selectedFile = event.target.files?.[0] ?? null
+              setExcelTemplateFile(selectedFile)
+            }}
+          />
+          <span className="text-[18px] font-medium text-slate-300">
+            {excelTemplateFile
+              ? `Plantilla seleccionada: ${excelTemplateFile.name}`
+              : 'Si no selecciona una plantilla, se usara el formato por defecto.'}
+          </span>
+        </label>
+
         <div className="grid gap-4 lg:grid-cols-2">
-          <AccessibleButton variant="secondary" fullWidth onClick={handleExportExcel}>
+          <AccessibleButton
+            variant="secondary"
+            fullWidth
+            onClick={() => void handleExportExcel()}
+            loading={isExportingExcel}
+          >
             <FileSpreadsheet className="h-6 w-6" aria-hidden="true" />
             Exportar a Excel
             <Download className="h-6 w-6" aria-hidden="true" />
