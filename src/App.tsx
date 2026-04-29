@@ -4,7 +4,6 @@ import { InventoryTable } from './components/InventoryTable'
 import { VoiceRecorder } from './components/VoiceRecorder'
 import { AccessibleButton } from './components/ui/AccessibleButton'
 import { Panel } from './components/ui/Panel'
-import { StatusMessage } from './components/ui/StatusMessage'
 import { useSpeechToText } from './hooks/useSpeechToText'
 import { exportToExcel } from './services/export/excelExportService'
 import { exportToWord } from './services/export/wordExportService'
@@ -17,7 +16,6 @@ function App() {
     headers,
     rows,
     inputText,
-    lastActionMessage,
     documentCreatedDate,
     setInputText,
     setDocumentCreatedDate,
@@ -25,12 +23,10 @@ function App() {
     updateCell,
     removeRow,
     clearAll,
-    setLastActionMessage,
   } = useInventoryStore()
   const [isExportingWord, setIsExportingWord] = useState(false)
-  const [statusTone, setStatusTone] = useState<'success' | 'warning'>('success')
   const [speechCaptured, setSpeechCaptured] = useState('')
-  const { transcript, isListening, isSupported, error, startListening, stopListening, resetTranscript } =
+  const { transcript, isListening, isSupported, startListening, stopListening, resetTranscript } =
     useSpeechToText({ language: 'es-ES' })
 
   useEffect(() => {
@@ -44,8 +40,6 @@ function App() {
   const safeDocumentDate = documentCreatedDate || new Date().toISOString().slice(0, 10)
 
   const notifySuccess = (message: string, options?: { withSpeech?: boolean }) => {
-    setStatusTone('success')
-    setLastActionMessage(message)
     playSuccessTone()
     if (options?.withSpeech ?? true) {
       speakFeedback(message)
@@ -53,8 +47,7 @@ function App() {
   }
 
   const notifyWarning = (message: string) => {
-    setStatusTone('warning')
-    setLastActionMessage(message)
+    speakFeedback(message)
   }
 
   const handleStartDictation = async () => {
@@ -117,12 +110,9 @@ function App() {
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-6 px-4 py-6 text-white md:px-8 md:py-8">
-      <Panel
-        title="Dominio Almacen PWA"
-        description="Dicta, corrige y exporta su inventario en segundos."
-      >
-        <StatusMessage message={error ?? lastActionMessage} tone={error ? 'warning' : statusTone} />
-      </Panel>
+      <header className="rounded-2xl border-2 border-slate-400/60 bg-panel/90 p-6 text-center md:p-8">
+        <h1 className="text-[34px] font-bold text-white md:text-[42px]">Inventario</h1>
+      </header>
 
       <Panel
         title="1) Dictado de voz"

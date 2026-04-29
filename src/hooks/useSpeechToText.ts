@@ -95,6 +95,7 @@ const requestMicrophonePermission = async (): Promise<boolean> => {
 export const useSpeechToText = (options: SpeechHookOptions = {}): SpeechHookResult => {
   const { language = 'es-ES' } = options
   const recognitionRef = useRef<SpeechRecognition | null>(null)
+  const finalTranscriptRef = useRef('')
   const [transcript, setTranscript] = useState('')
   const [isListening, setIsListening] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -117,7 +118,6 @@ export const useSpeechToText = (options: SpeechHookOptions = {}): SpeechHookResu
     recognition.lang = language
 
     recognition.onresult = (event) => {
-      let finalText = ''
       let interimText = ''
 
       for (let index = event.resultIndex; index < event.results.length; index += 1) {
@@ -127,13 +127,13 @@ export const useSpeechToText = (options: SpeechHookOptions = {}): SpeechHookResu
         }
         const phrase = result[0]?.transcript ?? ''
         if (result.isFinal) {
-          finalText += `${phrase} `
+          finalTranscriptRef.current = `${finalTranscriptRef.current} ${phrase}`.trim()
         } else {
           interimText += phrase
         }
       }
 
-      setTranscript((previous) => `${previous}${finalText}${interimText}`.trim())
+      setTranscript(`${finalTranscriptRef.current} ${interimText}`.trim())
     }
 
     recognition.onerror = (event) => {
@@ -166,6 +166,7 @@ export const useSpeechToText = (options: SpeechHookOptions = {}): SpeechHookResu
     }
 
     setError(null)
+    finalTranscriptRef.current = ''
     setTranscript('')
     try {
       setIsListening(true)
@@ -183,7 +184,10 @@ export const useSpeechToText = (options: SpeechHookOptions = {}): SpeechHookResu
     setIsListening(false)
   }, [])
 
-  const resetTranscript = useCallback(() => setTranscript(''), [])
+  const resetTranscript = useCallback(() => {
+    finalTranscriptRef.current = ''
+    setTranscript('')
+  }, [])
 
   return {
     transcript,
